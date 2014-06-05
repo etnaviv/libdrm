@@ -98,6 +98,11 @@ AC_ARG_ENABLE(freedreno-experimental-api,
 	      [Enable support for freedreno's experimental API (default: disabled)]),
 	      [FREEDRENO=$enableval], [FREEDRENO=no])
 
+AC_ARG_ENABLE(etnaviv-experimental-api,
+	      AS_HELP_STRING([--enable-etnaviv-experimental-api],
+	      [Enable support for etnaviv's experimental API (default: disabled)]),
+	      [ETNAVIV=$enableval], [ETNAVIV=no])
+
 AC_ARG_ENABLE(install-test-programs,
 		  AS_HELP_STRING([--enable-install-test-programs],
 		  [Install test programs (default: no)]),
@@ -219,6 +224,11 @@ if test "x$FREEDRENO" = xyes; then
 	AC_DEFINE(HAVE_FREEDRENO, 1, [Have freedreno support])
 fi
 
+AM_CONDITIONAL(HAVE_ETNAVIV, [test "x$ETNAVIV" = xyes])
+if test "x$ETNAVIV" = xyes; then
+	AC_DEFINE(HAVE_ETNAVIV, 1, [Have etnaviv support])
+fi
+
 AM_CONDITIONAL(HAVE_INSTALL_TESTS, [test "x$INSTALL_TESTS" = xyes])
 if test "x$INSTALL_TESTS" = xyes; then
 	AC_DEFINE(HAVE_INSTALL_TESTS, 1, [Install test programs])
@@ -270,7 +280,7 @@ else
 fi
 AM_CONDITIONAL([HAVE_MANPAGES_STYLESHEET], [test "x$HAVE_MANPAGES_STYLESHEET" = "xyes"])
 
-if test "x$INTEL" != "xno" -o "x$RADEON" != "xno" -o "x$NOUVEAU" != "xno" -o "x$OMAP" != "xno" -o "x$FREEDRENO" != "xno"; then
+if test "x$INTEL" != "xno" -o "x$RADEON" != "xno" -o "x$NOUVEAU" != "xno" -o "x$OMAP" != "xno" -o "x$FREEDRENO" != "xno" -o "x$ETNAVIV" != "xno"; then
     # Check for atomic intrinsics
     AC_CACHE_CHECK([for native atomic primitives], drm_cv_atomic_primitives,
     [
@@ -383,6 +393,8 @@ AC_CONFIG_FILES([
 	exynos/libdrm_exynos.pc
 	freedreno/Makefile
 	freedreno/libdrm_freedreno.pc
+	etnaviv/Makefile
+	etnaviv/libdrm_etnaviv.pc
 	tests/Makefile
 	tests/modeprint/Makefile
 	tests/modetest/Makefile
@@ -407,4 +419,5 @@ echo "  Nouveau API    $NOUVEAU"
 echo "  OMAP API       $OMAP"
 echo "  EXYNOS API     $EXYNOS"
 echo "  Freedreno API  $FREEDRENO"
+echo "  Etnaviv API    $ETNAVIV"
 echo ""
