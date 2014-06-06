@@ -102,5 +102,7 @@ fail:
 	if (dev)
 		etna_device_del(dev);
 
+	close(fd);
+
 	return ret;
 }
