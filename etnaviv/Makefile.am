@@ -12,7 +12,8 @@ libdrm_etnaviv_la_LIBADD = ../libdrm.la @PTHREADSTUBS_LIBS@
 libdrm_etnaviv_la_SOURCES = \
 	etnaviv_device.c \
 	etnaviv_bo.c \
-	etnaviv_pipe.c
+	etnaviv_pipe.c \
+	etnaviv_ringbuffer.c
 
 libdrm_etnavivincludedir = ${includedir}/libdrm
 libdrm_etnavivinclude_HEADERS = etnaviv_drmif.h
