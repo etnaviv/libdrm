@@ -110,8 +110,8 @@ struct etna_pipe * etna_pipe_new(struct etna_device *dev, enum etna_pipe_id id)
 	pipe->specs.model    = get_param(dev, pipe_id[id], VIVANTE_PARAM_GPU_MODEL);
 	pipe->specs.revision = get_param(dev, pipe_id[id], VIVANTE_PARAM_GPU_REVISION);
 
-	//if (! msm_pipe->gpu_id)
-	//	goto fail;
+	if (!pipe->specs.model)
+		goto fail;
 
 	INFO_MSG("Pipe Info:");
 	INFO_MSG(" GPU model:          0x%x (rev %x)", pipe->specs.model, pipe->specs.revision);
