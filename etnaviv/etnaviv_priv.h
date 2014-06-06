@@ -104,7 +104,7 @@ struct etna_bo {
 
 struct etna_pipe {
 	enum etna_pipe_id id;
-	struct etna_pipe *pipe;
+	struct etna_device *dev;
 	struct etna_specs specs;
 };
 

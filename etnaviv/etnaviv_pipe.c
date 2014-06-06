@@ -106,6 +106,7 @@ struct etna_pipe * etna_pipe_new(struct etna_device *dev, enum etna_pipe_id id)
 	}
 
 	pipe->id = pipe_id[id];
+	pipe->dev = dev;
 	pipe->specs.model    = get_param(dev, pipe_id[id], VIVANTE_PARAM_GPU_MODEL);
 	pipe->specs.revision = get_param(dev, pipe_id[id], VIVANTE_PARAM_GPU_REVISION);
 
