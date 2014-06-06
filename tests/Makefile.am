@@ -24,6 +24,10 @@ if HAVE_EXYNOS
 SUBDIRS += exynos
 endif
 
+if HAVE_ETNAVIV
+SUBDIRS += etnaviv
+endif
+
 if HAVE_LIBUDEV
 
 check_LTLIBRARIES = libdrmtest.la
