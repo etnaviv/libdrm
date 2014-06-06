@@ -16,7 +16,7 @@ libdrm_etnaviv_la_SOURCES = \
 	etnaviv_ringbuffer.c
 
 libdrm_etnavivincludedir = ${includedir}/libdrm
-libdrm_etnavivinclude_HEADERS = etnaviv_drmif.h
+libdrm_etnavivinclude_HEADERS = etnaviv_drmif.h etnaviv_ringbuffer.h
 
 pkgconfigdir = @pkgconfigdir@
 pkgconfig_DATA = libdrm_etnaviv.pc
