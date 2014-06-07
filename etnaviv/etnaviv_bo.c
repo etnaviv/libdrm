@@ -29,6 +29,14 @@
 
 static pthread_mutex_t table_lock = PTHREAD_MUTEX_INITIALIZER;
 
+/* set buffer name, and add to table, call w/ table_lock held: */
+static void set_name(struct etna_bo *bo, uint32_t name)
+{
+	bo->name = name;
+	/* add ourself into the handle table: */
+	drmHashInsert(bo->dev->handle_table, name, bo);
+}
+
 /* lookup a buffer from it's handle, call w/ table_lock held: */
 static struct etna_bo * lookup_bo(struct etna_device *dev,
 		uint32_t handle)
@@ -43,7 +51,7 @@ static struct etna_bo * lookup_bo(struct etna_device *dev,
 
 /* allocate a new buffer object, call w/ table_lock held */
 static struct etna_bo * bo_from_handle(struct etna_device *dev,
-		uint32_t handle)
+		uint32_t size, uint32_t handle)
 {
 	struct etna_bo *bo = calloc(sizeof(*bo), 1);
 	if (!bo) {
@@ -54,6 +62,7 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 		return NULL;
 	}
 	bo->dev = etna_device_ref(dev);
+	bo->size = size;
 	bo->handle = handle;
 	atomic_set(&bo->refcnt, 1);
 	/* add ourselves to the handle table: */
@@ -61,8 +70,8 @@ static struct etna_bo * bo_from_handle(struct etna_device *dev,
 	return bo;
 }
 
-/* allocate a new buffer object */
-static struct etna_bo * etna_bo_new_impl(struct etna_device *dev,
+/* allocate a new (un-tiled) buffer object */
+struct etna_bo *etna_bo_new(struct etna_device *dev,
 		uint32_t size, uint32_t flags)
 {
 	struct etna_bo *bo = NULL;
@@ -76,23 +85,13 @@ static struct etna_bo * etna_bo_new_impl(struct etna_device *dev,
 	ret = drmCommandWriteRead(dev->fd, DRM_VIVANTE_GEM_NEW,
 			&req, sizeof(req));
 	if (ret)
-		goto fail;
+		return NULL;
 
 	pthread_mutex_lock(&table_lock);
-	bo = bo_from_handle(dev, req.handle);
+	bo = bo_from_handle(dev, size, req.handle);
 	pthread_mutex_unlock(&table_lock);
 
 	return bo;
-
-fail:
-	return NULL;
-}
-
-/* allocate a new (un-tiled) buffer object */
-struct etna_bo *etna_bo_new(struct etna_device *dev,
-		uint32_t size, uint32_t flags)
-{
-	return etna_bo_new_impl(dev, size, flags);
 }
 
 struct etna_bo * etna_bo_ref(struct etna_bo *bo)
@@ -115,7 +114,6 @@ static int get_buffer_info(struct etna_bo *bo)
 
 	/* really all we need for now is mmap offset */
 	bo->offset = req.offset;
-	//bo->size = req.size;
 
 	return 0;
 }
@@ -123,31 +121,35 @@ static int get_buffer_info(struct etna_bo *bo)
 /* import a buffer object from DRI2 name */
 struct etna_bo * etna_bo_from_name(struct etna_device *dev, uint32_t name)
 {
-	struct etna_bo *bo = NULL;
 	struct drm_gem_open req = {
 			.name = name,
 	};
+	struct etna_bo *bo;
 
 	pthread_mutex_lock(&table_lock);
 
+	/* check name table first, to see if bo is already open: */
+	bo = lookup_bo(dev, req.handle);
+	if (bo)
+		goto out_unlock;
+
 	if (drmIoctl(dev->fd, DRM_IOCTL_GEM_OPEN, &req)) {
-		goto fail;
+		ERROR_MSG("gem-open failed: %s", strerror(errno));
+		goto out_unlock;
 	}
 
 	bo = lookup_bo(dev, req.handle);
-	if (!bo) {
-		bo = bo_from_handle(dev, req.handle);
-		bo->name = name;
-	}
+	if (bo)
+		goto out_unlock;
 
+	bo = bo_from_handle(dev, req.size, req.handle);
+	if (bo)
+		set_name(bo, name);
+
+out_unlock:
 	pthread_mutex_unlock(&table_lock);
 
 	return bo;
-
-fail:
-	pthread_mutex_unlock(&table_lock);
-	free(bo);
-	return NULL;
 }
 
 /* import a buffer from dmabuf fd, does not take ownership of the
@@ -156,6 +158,7 @@ fail:
  */
 struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 {
+#if 0
 	struct etna_bo *bo = NULL;
 	struct drm_prime_handle req = {
 			.fd = fd,
@@ -181,6 +184,7 @@ struct etna_bo * etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 fail:
 	pthread_mutex_unlock(&table_lock);
 	free(bo);
+#endif
 	return NULL;
 }
 
