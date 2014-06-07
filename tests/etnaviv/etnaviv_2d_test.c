@@ -30,6 +30,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "xf86drm.h"
@@ -81,6 +82,7 @@ int main(int argc, char *argv[])
 		ret = 4;
 		goto fail;
 	}
+	memset(etna_bo_map(bmp), 0, bmp_size);
 
 
 	rb = etna_ringbuffer_new(pipe, 1024);
