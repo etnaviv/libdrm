@@ -36,6 +36,117 @@
 #include "etnaviv_drmif.h"
 #include "etnaviv_ringbuffer.h"
 
+#include "state.xml.h"
+#include "state_2d.xml.h"
+#include "cmdstream.xml.h"
+
+/** Convenience macros for command buffer building, remember to reserve enough space before using them */
+/* Queue load state command header (queues one word) */
+
+static inline void etna_emit_load_state(struct etna_ringbuffer *ring,
+		const uint16_t offset, const uint16_t count)
+{
+	uint32_t v;
+
+	v = 	(VIV_FE_LOAD_STATE_HEADER_OP_LOAD_STATE | VIV_FE_LOAD_STATE_HEADER_OFFSET(offset) |
+			(VIV_FE_LOAD_STATE_HEADER_COUNT(count) & VIV_FE_LOAD_STATE_HEADER_COUNT__MASK));
+
+	etna_ringbuffer_emit(ring, v);
+}
+
+static inline void etna_set_state(struct etna_ringbuffer *ring, uint32_t address, uint32_t value)
+{
+	etna_emit_load_state(ring, address >> 2, 1);
+    etna_ringbuffer_emit(ring, value);
+}
+
+static void gen_cmd_stream(struct etna_ringbuffer *rb, struct etna_bo *bmp, const int width, const int height)
+{
+	int rec;
+	static int num_rects = 256;
+
+    etna_set_state(rb, VIVS_DE_SRC_ADDRESS, 0);
+    etna_set_state(rb, VIVS_DE_SRC_STRIDE, width*4);
+    etna_set_state(rb, VIVS_DE_SRC_ROTATION_CONFIG, 0);
+    etna_set_state(rb, VIVS_DE_SRC_CONFIG,
+            VIVS_DE_SRC_CONFIG_UNK16 |
+            VIVS_DE_SRC_CONFIG_SOURCE_FORMAT(DE_FORMAT_MONOCHROME) |
+            VIVS_DE_SRC_CONFIG_LOCATION_MEMORY |
+            VIVS_DE_SRC_CONFIG_PACK_PACKED8 |
+            VIVS_DE_SRC_CONFIG_PE10_SOURCE_FORMAT(DE_FORMAT_MONOCHROME));
+    etna_set_state(rb, VIVS_DE_SRC_ORIGIN, 0);
+    etna_set_state(rb, VIVS_DE_SRC_SIZE, 0);
+    etna_set_state(rb, VIVS_DE_SRC_COLOR_BG, 0xff44ff44);
+    etna_set_state(rb, VIVS_DE_SRC_COLOR_FG, 0xff44ff44);
+    etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_LOW, 0);
+    etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_HIGH, 0);
+    etna_set_state(rb, VIVS_DE_DEST_ADDRESS, etna_bo_handle(bmp));
+    etna_set_state(rb, VIVS_DE_DEST_STRIDE, width*4);
+    etna_set_state(rb, VIVS_DE_DEST_ROTATION_CONFIG, 0);
+    etna_set_state(rb, VIVS_DE_DEST_CONFIG,
+            VIVS_DE_DEST_CONFIG_FORMAT(DE_FORMAT_A8R8G8B8) |
+            VIVS_DE_DEST_CONFIG_COMMAND_LINE |
+            VIVS_DE_DEST_CONFIG_SWIZZLE(DE_SWIZZLE_ARGB) |
+            VIVS_DE_DEST_CONFIG_TILED_DISABLE |
+            VIVS_DE_DEST_CONFIG_MINOR_TILED_DISABLE
+            );
+    etna_set_state(rb, VIVS_DE_ROP,
+            VIVS_DE_ROP_ROP_FG(0xcc) | VIVS_DE_ROP_ROP_BG(0xcc) | VIVS_DE_ROP_TYPE_ROP4);
+    etna_set_state(rb, VIVS_DE_CLIP_TOP_LEFT,
+            VIVS_DE_CLIP_TOP_LEFT_X(0) |
+            VIVS_DE_CLIP_TOP_LEFT_Y(0)
+            );
+    etna_set_state(rb, VIVS_DE_CLIP_BOTTOM_RIGHT,
+            VIVS_DE_CLIP_BOTTOM_RIGHT_X(width) |
+            VIVS_DE_CLIP_BOTTOM_RIGHT_Y(height)
+            );
+    etna_set_state(rb, VIVS_DE_CONFIG, 0); /* TODO */
+    etna_set_state(rb, VIVS_DE_SRC_ORIGIN_FRACTION, 0);
+    etna_set_state(rb, VIVS_DE_ALPHA_CONTROL, 0);
+    etna_set_state(rb, VIVS_DE_ALPHA_MODES, 0);
+    etna_set_state(rb, VIVS_DE_DEST_ROTATION_HEIGHT, 0);
+    etna_set_state(rb, VIVS_DE_SRC_ROTATION_HEIGHT, 0);
+    etna_set_state(rb, VIVS_DE_ROT_ANGLE, 0);
+
+    /* Clear color PE20 */
+    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE32, 0xff40ff40);
+    /* Clear color PE10 */
+    etna_set_state(rb, VIVS_DE_CLEAR_BYTE_MASK, 0xff);
+    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE_LOW, 0xff40ff40);
+    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE_HIGH, 0xff40ff40);
+
+    etna_set_state(rb, VIVS_DE_DEST_COLOR_KEY, 0);
+    etna_set_state(rb, VIVS_DE_GLOBAL_SRC_COLOR, 0);
+    etna_set_state(rb, VIVS_DE_GLOBAL_DEST_COLOR, 0);
+    etna_set_state(rb, VIVS_DE_COLOR_MULTIPLY_MODES, 0);
+    etna_set_state(rb, VIVS_DE_PE_TRANSPARENCY, 0);
+    etna_set_state(rb, VIVS_DE_PE_CONTROL, 0);
+    etna_set_state(rb, VIVS_DE_PE_DITHER_LOW, 0xffffffff);
+    etna_set_state(rb, VIVS_DE_PE_DITHER_HIGH, 0xffffffff);
+
+    /* Queue DE command */
+    etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_HEADER_OP_DRAW_2D | VIV_FE_DRAW_2D_HEADER_COUNT(num_rects));
+
+    rb->cur++; /* rectangles start aligned */
+    for(rec = 0; rec < num_rects; rec++)
+    {
+        int x1 = 0;
+        int y1 = rec;
+        int x2 = 256;
+        int y2 = rec;
+
+        etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_TOP_LEFT_X(x1) |
+                                      VIV_FE_DRAW_2D_TOP_LEFT_Y(y1));
+        etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_BOTTOM_RIGHT_X(x2) |
+                                      VIV_FE_DRAW_2D_BOTTOM_RIGHT_Y(y2));
+    }
+    etna_set_state(rb, 1, 0);
+    etna_set_state(rb, 1, 0);
+    etna_set_state(rb, 1, 0);
+
+    etna_set_state(rb, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_PE2D);
+}
+
 int main(int argc, char *argv[])
 {
 	const int width = 256;
@@ -89,8 +200,10 @@ int main(int argc, char *argv[])
 		goto fail;
 	}
 
-	/* TODO: generate command sequence */
+	/* generate command sequence */
+	gen_cmd_stream(rb, bmp, width, height);
 
+	etna_ringbuffer_flush(rb);
 
 fail:
 	if (rb)
