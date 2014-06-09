@@ -13,4 +13,5 @@ etnaviv_2d_test_LDADD = \
 	$(top_builddir)/etnaviv/libdrm_etnaviv.la
 
 etnaviv_2d_test_SOURCES = \
-	etnaviv_2d_test.c
+	etnaviv_2d_test.c \
+	write_bmp.c
