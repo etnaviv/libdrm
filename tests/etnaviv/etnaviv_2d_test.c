@@ -40,6 +40,8 @@
 #include "state_2d.xml.h"
 #include "cmdstream.xml.h"
 
+#include "write_bmp.h"
+
 /** Convenience macros for command buffer building, remember to reserve enough space before using them */
 /* Queue load state command header (queues one word) */
 
@@ -204,6 +206,8 @@ int main(int argc, char *argv[])
 	gen_cmd_stream(rb, bmp, width, height);
 
 	etna_ringbuffer_flush(rb);
+
+	bmp_dump32(etna_bo_map(bmp), width, height, false, "/tmp/etna.bmp");
 
 fail:
 	if (rb)
