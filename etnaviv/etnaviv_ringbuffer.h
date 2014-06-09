@@ -44,4 +44,10 @@ void etna_ringbuffer_reset(struct etna_ringbuffer *ring);
 int etna_ringbuffer_flush(struct etna_ringbuffer *ring);
 uint32_t etna_ringbuffer_timestamp(struct etna_ringbuffer *ring);
 
+static inline void etna_ringbuffer_emit(struct etna_ringbuffer *ring,
+		uint32_t data)
+{
+	(*ring->cur++) = data;
+}
+
 #endif /* ETNAVIV_RINGBUFFER_H_ */
