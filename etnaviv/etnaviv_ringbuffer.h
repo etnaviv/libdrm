@@ -64,6 +64,6 @@ struct etna_reloc {
 	int32_t  shift;
 };
 
-void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *reloc);
+void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *r);
 
 #endif /* ETNAVIV_RINGBUFFER_H_ */

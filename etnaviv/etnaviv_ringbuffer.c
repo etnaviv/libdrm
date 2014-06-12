@@ -103,7 +103,24 @@ uint32_t etna_ringbuffer_timestamp(struct etna_ringbuffer *ring)
 	return ring->last_timestamp;
 }
 
-void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *reloc)
+void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *r)
 {
-	/* TODO */
+	struct drm_vivante_gem_submit_reloc *reloc;
+	uint32_t idx = APPEND(ring, relocs);
+	uint32_t addr;
+
+	reloc = &ring->relocs[idx];
+
+	//reloc->reloc_idx = bo2idx(parent, r->bo, r->flags);
+	reloc->reloc_offset = r->offset;
+	reloc->or = r->or;
+	reloc->shift = r->shift;
+	//reloc->submit_offset = offset_bytes(ring->cur, ring->start);
+
+	addr = 0xdeadbeef;
+	if (r->shift < 0)
+		addr >>= -r->shift;
+	else
+		addr <<= r->shift;
+	(*ring->cur++) = addr | r->or;
 }
