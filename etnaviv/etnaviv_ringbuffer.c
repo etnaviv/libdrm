@@ -90,11 +90,16 @@ void etna_ringbuffer_reset(struct etna_ringbuffer *ring)
 {
 	uint32_t *start = ring->start;
 	ring->cur = ring->last_start = start;
+
+	ring->nr_relocs = 0;
 }
 
 int etna_ringbuffer_flush(struct etna_ringbuffer *ring)
 {
 	/* TODO */
+
+	etna_ringbuffer_reset(ring);
+
 	return 0;
 }
 
