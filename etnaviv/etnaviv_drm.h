@@ -119,7 +119,7 @@ struct drm_msm_gem_cpu_fini {
  * NOTE that reloc's must be sorted by order of increasing submit_offset,
  * otherwise EINVAL.
  */
-struct drm_msm_gem_submit_reloc {
+struct drm_vivante_gem_submit_reloc {
 	uint32_t submit_offset;  /* in, offset from submit_bo */
 	uint32_t or;             /* in, value OR'd with result */
 	int32_t  shift;          /* in, amount of left shift (can be negative) */

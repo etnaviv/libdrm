@@ -34,6 +34,10 @@ struct etna_ringbuffer {
 	uint32_t last_timestamp;
 
 	struct etna_bo *ring_bo;
+
+	/* reloc's table: */
+	struct drm_vivante_gem_submit_reloc *relocs;
+	uint32_t nr_relocs, max_relocs;
 };
 
 struct etna_ringbuffer * etna_ringbuffer_new(struct etna_pipe *pipe,
