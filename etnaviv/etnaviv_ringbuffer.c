@@ -85,3 +85,8 @@ uint32_t etna_ringbuffer_timestamp(struct etna_ringbuffer *ring)
 {
 	return ring->last_timestamp;
 }
+
+void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *reloc)
+{
+	/* TODO */
+}

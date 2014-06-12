@@ -50,4 +50,16 @@ static inline void etna_ringbuffer_emit(struct etna_ringbuffer *ring,
 	(*ring->cur++) = data;
 }
 
+struct etna_reloc {
+	struct etna_bo *bo;
+#define ETNA_RELOC_READ             0x0001
+#define ETNA_RELOC_WRITE            0x0002
+	uint32_t flags;
+	uint32_t offset;
+	uint32_t or;
+	int32_t  shift;
+};
+
+void etna_ringbuffer_reloc(struct etna_ringbuffer *ring, const struct etna_reloc *reloc);
+
 #endif /* ETNAVIV_RINGBUFFER_H_ */
