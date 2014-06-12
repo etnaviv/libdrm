@@ -43,9 +43,7 @@
 
 #include "write_bmp.h"
 
-/** Convenience macros for command buffer building, remember to reserve enough space before using them */
 /* Queue load state command header (queues one word) */
-
 static inline void etna_emit_load_state(struct etna_ringbuffer *ring,
 		const uint16_t offset, const uint16_t count)
 {
@@ -60,7 +58,21 @@ static inline void etna_emit_load_state(struct etna_ringbuffer *ring,
 static inline void etna_set_state(struct etna_ringbuffer *ring, uint32_t address, uint32_t value)
 {
 	etna_emit_load_state(ring, address >> 2, 1);
-    etna_ringbuffer_emit(ring, value);
+	etna_ringbuffer_emit(ring, value);
+}
+
+static inline void etna_set_state_from_bo(struct etna_ringbuffer *ring,
+		uint32_t address, struct etna_bo *bo)
+{
+	etna_emit_load_state(ring, address >> 2, 1);
+
+	etna_ringbuffer_reloc(ring, &(struct etna_reloc){
+		.bo = bo,
+		.flags = ETNA_RELOC_READ,
+		.offset = 0,
+		.or = 0,
+		.shift = 0,
+	});
 }
 
 static void gen_cmd_stream(struct etna_ringbuffer *rb, struct etna_bo *bmp, const int width, const int height)
@@ -83,7 +95,7 @@ static void gen_cmd_stream(struct etna_ringbuffer *rb, struct etna_bo *bmp, cons
     etna_set_state(rb, VIVS_DE_SRC_COLOR_FG, 0xff44ff44);
     etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_LOW, 0);
     etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_HIGH, 0);
-    etna_set_state(rb, VIVS_DE_DEST_ADDRESS, etna_bo_handle(bmp));
+    etna_set_state_from_bo(rb, VIVS_DE_DEST_ADDRESS, bmp);
     etna_set_state(rb, VIVS_DE_DEST_STRIDE, width*4);
     etna_set_state(rb, VIVS_DE_DEST_ROTATION_CONFIG, 0);
     etna_set_state(rb, VIVS_DE_DEST_CONFIG,
