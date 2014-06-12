@@ -30,6 +30,23 @@
 #include "etnaviv_priv.h"
 #include "etnaviv_ringbuffer.h"
 
+static void *grow(void *ptr, uint32_t nr, uint32_t *max, uint32_t sz)
+{
+	if ((nr + 1) > *max) {
+		if ((*max * 2) < (nr + 1))
+			*max = nr + 5;
+		else
+			*max = *max * 2;
+		ptr = realloc(ptr, *max * sz);
+	}
+	return ptr;
+}
+
+#define APPEND(x, name) ({ \
+	(x)->name = grow((x)->name, (x)->nr_ ## name, &(x)->max_ ## name, sizeof((x)->name[0])); \
+	(x)->nr_ ## name ++; \
+})
+
 struct etna_ringbuffer * etna_ringbuffer_new(struct etna_pipe *pipe,
 		uint32_t size)
 {
