@@ -96,6 +96,10 @@ void etna_ringbuffer_reset(struct etna_ringbuffer *ring)
 
 int etna_ringbuffer_flush(struct etna_ringbuffer *ring)
 {
+	struct drm_vivante_gem_submit req = {
+			.pipe = ring->pipe->id,
+	};
+
 	/* TODO */
 
 	etna_ringbuffer_reset(ring);
