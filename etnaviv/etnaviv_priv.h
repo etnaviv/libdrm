@@ -42,6 +42,8 @@
 #include "xf86drm.h"
 #include "xf86atomic.h"
 
+#include "list.h"
+
 #include "etnaviv_drmif.h"
 //#include "freedreno_ringbuffer.h"
 //#include "drm.h"
@@ -100,6 +102,10 @@ struct etna_bo {
 	uint64_t        offset;         /* offset to mmap() */
 	int             fd;             /* dmabuf handle */
 	atomic_t        refcnt;
+
+	uint64_t presumed;
+	uint32_t indexp1[VIVANTE_MAX_PIPES]; /* index plus 1 */
+	struct list_head list[VIVANTE_MAX_PIPES];
 };
 
 struct etna_pipe {
@@ -125,5 +131,8 @@ struct etna_pipe {
 #define ERROR_MSG(fmt, ...) \
 		do { drmMsg("[E] " fmt " (%s:%d)\n", \
 				##__VA_ARGS__, __FUNCTION__, __LINE__); } while (0)
+
+#define U642VOID(x) ((void *)(unsigned long)(x))
+#define VOID2U64(x) ((uint64_t)(unsigned long)(x))
 
 #endif /* ETNAVIV_PRIV_H_ */

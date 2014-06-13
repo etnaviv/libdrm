@@ -135,10 +135,10 @@ struct drm_vivante_gem_submit_reloc {
  *   CTX_RESTORE_BUF - only executed if there has been a GPU context
  *      switch since the last SUBMIT ioctl
  */
-#define MSM_SUBMIT_CMD_BUF             0x0001
-#define MSM_SUBMIT_CMD_IB_TARGET_BUF   0x0002
-#define MSM_SUBMIT_CMD_CTX_RESTORE_BUF 0x0003
-struct drm_msm_gem_submit_cmd {
+#define ETNA_SUBMIT_CMD_BUF             0x0001
+#define ETNA_SUBMIT_CMD_IB_TARGET_BUF   0x0002
+#define ETNA_SUBMIT_CMD_CTX_RESTORE_BUF 0x0003
+struct drm_vivante_gem_submit_cmd {
 	uint32_t type;           /* in, one of MSM_SUBMIT_CMD_x */
 	uint32_t submit_idx;     /* in, index of submit_bo cmdstream buffer */
 	uint32_t submit_offset;  /* in, offset into submit_bo */
@@ -159,9 +159,9 @@ struct drm_msm_gem_submit_cmd {
  * avoid kernel needing to map/access the cmdstream bo in the common
  * case.
  */
-#define MSM_SUBMIT_BO_READ             0x0001
-#define MSM_SUBMIT_BO_WRITE            0x0002
-struct drm_msm_gem_submit_bo {
+#define ETNA_SUBMIT_BO_READ             0x0001
+#define ETNA_SUBMIT_BO_WRITE            0x0002
+struct drm_vivante_gem_submit_bo {
 	uint32_t flags;          /* in, mask of MSM_SUBMIT_BO_x */
 	uint32_t handle;         /* in, GEM handle */
 	uint64_t presumed;       /* in/out, presumed buffer address */
@@ -201,7 +201,7 @@ struct drm_msm_wait_fence {
 #define DRM_VIVANTE_GEM_INFO               0x03
 #define DRM_MSM_GEM_CPU_PREP           0x04
 #define DRM_MSM_GEM_CPU_FINI           0x05
-#define DRM_MSM_GEM_SUBMIT             0x06
+#define DRM_VIVANTE_GEM_SUBMIT         0x06
 #define DRM_MSM_WAIT_FENCE             0x07
 #define DRM_MSM_NUM_IOCTLS             0x08
 
@@ -210,7 +210,7 @@ struct drm_msm_wait_fence {
 #define DRM_IOCTL_MSM_GEM_INFO         DRM_IOWR(DRM_COMMAND_BASE + DRM_MSM_GEM_INFO, struct drm_msm_gem_info)
 #define DRM_IOCTL_MSM_GEM_CPU_PREP     DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_GEM_CPU_PREP, struct drm_msm_gem_cpu_prep)
 #define DRM_IOCTL_MSM_GEM_CPU_FINI     DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_GEM_CPU_FINI, struct drm_msm_gem_cpu_fini)
-#define DRM_IOCTL_MSM_GEM_SUBMIT       DRM_IOWR(DRM_COMMAND_BASE + DRM_MSM_GEM_SUBMIT, struct drm_msm_gem_submit)
+#define DRM_IOCTL_MSM_GEM_SUBMIT       DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GEM_SUBMIT, struct drm_vivante_gem_submit)
 #define DRM_IOCTL_MSM_WAIT_FENCE       DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_WAIT_FENCE, struct drm_msm_wait_fence)
 
 #endif /* __VIVANTE_DRM_H__ */
