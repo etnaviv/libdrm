@@ -89,7 +89,7 @@ struct etna_ringbuffer * etna_ringbuffer_new(struct etna_pipe *pipe,
 
 	list_inithead(&ring_internal->submit_list);
 
-	ring_internal->ring_bo = etna_bo_new(pipe->dev, size, 0);
+	ring_internal->ring_bo = etna_bo_new(pipe->dev, size, ETNA_BO_CMDSTREAM);
 	if (!ring_internal->ring_bo) {
 		ERROR_MSG("ringbuffer allocation failed");
 		goto fail;

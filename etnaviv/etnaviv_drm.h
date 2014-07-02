@@ -70,8 +70,7 @@ struct drm_vivante_param {
  * GEM buffers:
  */
 
-#define MSM_BO_SCANOUT       0x00000001     /* scanout capable */
-#define MSM_BO_GPU_READONLY  0x00000002
+#define ETNA_BO_CMDSTREAM    0x00000001
 #define MSM_BO_CACHE_MASK    0x000f0000
 /* cache modes */
 #define MSM_BO_CACHED        0x00010000
@@ -198,7 +197,7 @@ struct drm_msm_wait_fence {
 #define DRM_MSM_SET_PARAM              0x01
  */
 #define DRM_VIVANTE_GEM_NEW            0x02
-#define DRM_VIVANTE_GEM_INFO               0x03
+#define DRM_VIVANTE_GEM_INFO           0x03
 #define DRM_MSM_GEM_CPU_PREP           0x04
 #define DRM_MSM_GEM_CPU_FINI           0x05
 #define DRM_VIVANTE_GEM_SUBMIT         0x06
@@ -207,10 +206,10 @@ struct drm_msm_wait_fence {
 
 #define DRM_IOCTL_VIVANTE_GET_PARAM        DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GET_PARAM, struct drm_vivante_param)
 #define DRM_IOCTL_VIVANTE_GEM_NEW          DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GEM_NEW, struct drm_vivante_gem_new)
-#define DRM_IOCTL_MSM_GEM_INFO         DRM_IOWR(DRM_COMMAND_BASE + DRM_MSM_GEM_INFO, struct drm_msm_gem_info)
+#define DRM_IOCTL_VIVANTE_GEM_INFO         DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GEM_INFO, struct drm_vivante_gem_info)
 #define DRM_IOCTL_MSM_GEM_CPU_PREP     DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_GEM_CPU_PREP, struct drm_msm_gem_cpu_prep)
 #define DRM_IOCTL_MSM_GEM_CPU_FINI     DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_GEM_CPU_FINI, struct drm_msm_gem_cpu_fini)
-#define DRM_IOCTL_MSM_GEM_SUBMIT       DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GEM_SUBMIT, struct drm_vivante_gem_submit)
+#define DRM_IOCTL_VIVANTE_GEM_SUBMIT   DRM_IOWR(DRM_COMMAND_BASE + DRM_VIVANTE_GEM_SUBMIT, struct drm_vivante_gem_submit)
 #define DRM_IOCTL_MSM_WAIT_FENCE       DRM_IOW (DRM_COMMAND_BASE + DRM_MSM_WAIT_FENCE, struct drm_msm_wait_fence)
 
 #endif /* __VIVANTE_DRM_H__ */
