@@ -35,7 +35,6 @@
 
 #include "xf86drm.h"
 #include "etnaviv_drmif.h"
-#include "etnaviv_ringbuffer.h"
 
 #include "state.xml.h"
 #include "state_2d.xml.h"
@@ -43,8 +42,7 @@
 
 #include "write_bmp.h"
 
-/* Queue load state command header (queues one word) */
-static inline void etna_emit_load_state(struct etna_ringbuffer *ring,
+static inline void etna_emit_load_state(struct etna_context *ctx,
 		const uint16_t offset, const uint16_t count)
 {
 	uint32_t v;
@@ -52,21 +50,22 @@ static inline void etna_emit_load_state(struct etna_ringbuffer *ring,
 	v = 	(VIV_FE_LOAD_STATE_HEADER_OP_LOAD_STATE | VIV_FE_LOAD_STATE_HEADER_OFFSET(offset) |
 			(VIV_FE_LOAD_STATE_HEADER_COUNT(count) & VIV_FE_LOAD_STATE_HEADER_COUNT__MASK));
 
-	etna_ringbuffer_emit(ring, v);
+	etna_context_emit(ctx, v);
 }
 
-static inline void etna_set_state(struct etna_ringbuffer *ring, uint32_t address, uint32_t value)
+static inline void etna_set_state(struct etna_context *ctx, uint32_t address, uint32_t value)
 {
-	etna_emit_load_state(ring, address >> 2, 1);
-	etna_ringbuffer_emit(ring, value);
+	etna_context_reserve(ctx, 2),
+	etna_emit_load_state(ctx, address >> 2, 1);
+	etna_context_emit(ctx, value);
 }
 
-static inline void etna_set_state_from_bo(struct etna_ringbuffer *ring,
+static inline void etna_set_state_from_bo(struct etna_context *ctx,
 		uint32_t address, struct etna_bo *bo)
 {
-	etna_emit_load_state(ring, address >> 2, 1);
+	etna_set_state(ctx, address >> 2, 1);
 
-	etna_ringbuffer_reloc(ring, &(struct etna_reloc){
+	etna_context_reloc(ctx, &(struct etna_reloc){
 		.bo = bo,
 		.flags = ETNA_RELOC_READ,
 		.offset = 0,
@@ -75,74 +74,74 @@ static inline void etna_set_state_from_bo(struct etna_ringbuffer *ring,
 	});
 }
 
-static void gen_cmd_stream(struct etna_ringbuffer *rb, struct etna_bo *bmp, const int width, const int height)
+static void gen_cmd_stream(struct etna_context *ctx, struct etna_bo *bmp, const int width, const int height)
 {
 	int rec;
 	static int num_rects = 256;
 
-    etna_set_state(rb, VIVS_DE_SRC_ADDRESS, 0);
-    etna_set_state(rb, VIVS_DE_SRC_STRIDE, width*4);
-    etna_set_state(rb, VIVS_DE_SRC_ROTATION_CONFIG, 0);
-    etna_set_state(rb, VIVS_DE_SRC_CONFIG,
+    etna_set_state(ctx, VIVS_DE_SRC_ADDRESS, 0);
+    etna_set_state(ctx, VIVS_DE_SRC_STRIDE, width*4);
+    etna_set_state(ctx, VIVS_DE_SRC_ROTATION_CONFIG, 0);
+    etna_set_state(ctx, VIVS_DE_SRC_CONFIG,
             VIVS_DE_SRC_CONFIG_UNK16 |
             VIVS_DE_SRC_CONFIG_SOURCE_FORMAT(DE_FORMAT_MONOCHROME) |
             VIVS_DE_SRC_CONFIG_LOCATION_MEMORY |
             VIVS_DE_SRC_CONFIG_PACK_PACKED8 |
             VIVS_DE_SRC_CONFIG_PE10_SOURCE_FORMAT(DE_FORMAT_MONOCHROME));
-    etna_set_state(rb, VIVS_DE_SRC_ORIGIN, 0);
-    etna_set_state(rb, VIVS_DE_SRC_SIZE, 0);
-    etna_set_state(rb, VIVS_DE_SRC_COLOR_BG, 0xff44ff44);
-    etna_set_state(rb, VIVS_DE_SRC_COLOR_FG, 0xff44ff44);
-    etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_LOW, 0);
-    etna_set_state(rb, VIVS_DE_STRETCH_FACTOR_HIGH, 0);
-    etna_set_state_from_bo(rb, VIVS_DE_DEST_ADDRESS, bmp);
-    etna_set_state(rb, VIVS_DE_DEST_STRIDE, width*4);
-    etna_set_state(rb, VIVS_DE_DEST_ROTATION_CONFIG, 0);
-    etna_set_state(rb, VIVS_DE_DEST_CONFIG,
+    etna_set_state(ctx, VIVS_DE_SRC_ORIGIN, 0);
+    etna_set_state(ctx, VIVS_DE_SRC_SIZE, 0);
+    etna_set_state(ctx, VIVS_DE_SRC_COLOR_BG, 0xff44ff44);
+    etna_set_state(ctx, VIVS_DE_SRC_COLOR_FG, 0xff44ff44);
+    etna_set_state(ctx, VIVS_DE_STRETCH_FACTOR_LOW, 0);
+    etna_set_state(ctx, VIVS_DE_STRETCH_FACTOR_HIGH, 0);
+    etna_set_state_from_bo(ctx, VIVS_DE_DEST_ADDRESS, bmp);
+    etna_set_state(ctx, VIVS_DE_DEST_STRIDE, width*4);
+    etna_set_state(ctx, VIVS_DE_DEST_ROTATION_CONFIG, 0);
+    etna_set_state(ctx, VIVS_DE_DEST_CONFIG,
             VIVS_DE_DEST_CONFIG_FORMAT(DE_FORMAT_A8R8G8B8) |
             VIVS_DE_DEST_CONFIG_COMMAND_LINE |
             VIVS_DE_DEST_CONFIG_SWIZZLE(DE_SWIZZLE_ARGB) |
             VIVS_DE_DEST_CONFIG_TILED_DISABLE |
             VIVS_DE_DEST_CONFIG_MINOR_TILED_DISABLE
             );
-    etna_set_state(rb, VIVS_DE_ROP,
+    etna_set_state(ctx, VIVS_DE_ROP,
             VIVS_DE_ROP_ROP_FG(0xcc) | VIVS_DE_ROP_ROP_BG(0xcc) | VIVS_DE_ROP_TYPE_ROP4);
-    etna_set_state(rb, VIVS_DE_CLIP_TOP_LEFT,
+    etna_set_state(ctx, VIVS_DE_CLIP_TOP_LEFT,
             VIVS_DE_CLIP_TOP_LEFT_X(0) |
             VIVS_DE_CLIP_TOP_LEFT_Y(0)
             );
-    etna_set_state(rb, VIVS_DE_CLIP_BOTTOM_RIGHT,
+    etna_set_state(ctx, VIVS_DE_CLIP_BOTTOM_RIGHT,
             VIVS_DE_CLIP_BOTTOM_RIGHT_X(width) |
             VIVS_DE_CLIP_BOTTOM_RIGHT_Y(height)
             );
-    etna_set_state(rb, VIVS_DE_CONFIG, 0); /* TODO */
-    etna_set_state(rb, VIVS_DE_SRC_ORIGIN_FRACTION, 0);
-    etna_set_state(rb, VIVS_DE_ALPHA_CONTROL, 0);
-    etna_set_state(rb, VIVS_DE_ALPHA_MODES, 0);
-    etna_set_state(rb, VIVS_DE_DEST_ROTATION_HEIGHT, 0);
-    etna_set_state(rb, VIVS_DE_SRC_ROTATION_HEIGHT, 0);
-    etna_set_state(rb, VIVS_DE_ROT_ANGLE, 0);
+    etna_set_state(ctx, VIVS_DE_CONFIG, 0); /* TODO */
+    etna_set_state(ctx, VIVS_DE_SRC_ORIGIN_FRACTION, 0);
+    etna_set_state(ctx, VIVS_DE_ALPHA_CONTROL, 0);
+    etna_set_state(ctx, VIVS_DE_ALPHA_MODES, 0);
+    etna_set_state(ctx, VIVS_DE_DEST_ROTATION_HEIGHT, 0);
+    etna_set_state(ctx, VIVS_DE_SRC_ROTATION_HEIGHT, 0);
+    etna_set_state(ctx, VIVS_DE_ROT_ANGLE, 0);
 
     /* Clear color PE20 */
-    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE32, 0xff40ff40);
+    etna_set_state(ctx, VIVS_DE_CLEAR_PIXEL_VALUE32, 0xff40ff40);
     /* Clear color PE10 */
-    etna_set_state(rb, VIVS_DE_CLEAR_BYTE_MASK, 0xff);
-    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE_LOW, 0xff40ff40);
-    etna_set_state(rb, VIVS_DE_CLEAR_PIXEL_VALUE_HIGH, 0xff40ff40);
+    etna_set_state(ctx, VIVS_DE_CLEAR_BYTE_MASK, 0xff);
+    etna_set_state(ctx, VIVS_DE_CLEAR_PIXEL_VALUE_LOW, 0xff40ff40);
+    etna_set_state(ctx, VIVS_DE_CLEAR_PIXEL_VALUE_HIGH, 0xff40ff40);
 
-    etna_set_state(rb, VIVS_DE_DEST_COLOR_KEY, 0);
-    etna_set_state(rb, VIVS_DE_GLOBAL_SRC_COLOR, 0);
-    etna_set_state(rb, VIVS_DE_GLOBAL_DEST_COLOR, 0);
-    etna_set_state(rb, VIVS_DE_COLOR_MULTIPLY_MODES, 0);
-    etna_set_state(rb, VIVS_DE_PE_TRANSPARENCY, 0);
-    etna_set_state(rb, VIVS_DE_PE_CONTROL, 0);
-    etna_set_state(rb, VIVS_DE_PE_DITHER_LOW, 0xffffffff);
-    etna_set_state(rb, VIVS_DE_PE_DITHER_HIGH, 0xffffffff);
+    etna_set_state(ctx, VIVS_DE_DEST_COLOR_KEY, 0);
+    etna_set_state(ctx, VIVS_DE_GLOBAL_SRC_COLOR, 0);
+    etna_set_state(ctx, VIVS_DE_GLOBAL_DEST_COLOR, 0);
+    etna_set_state(ctx, VIVS_DE_COLOR_MULTIPLY_MODES, 0);
+    etna_set_state(ctx, VIVS_DE_PE_TRANSPARENCY, 0);
+    etna_set_state(ctx, VIVS_DE_PE_CONTROL, 0);
+    etna_set_state(ctx, VIVS_DE_PE_DITHER_LOW, 0xffffffff);
+    etna_set_state(ctx, VIVS_DE_PE_DITHER_HIGH, 0xffffffff);
 
     /* Queue DE command */
-    etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_HEADER_OP_DRAW_2D | VIV_FE_DRAW_2D_HEADER_COUNT(num_rects));
+    etna_context_emit(ctx, VIV_FE_DRAW_2D_HEADER_OP_DRAW_2D | VIV_FE_DRAW_2D_HEADER_COUNT(num_rects));
 
-    rb->cur++; /* rectangles start aligned */
+    //ctx->cmd++; /* rectangles start aligned */
     for(rec = 0; rec < num_rects; rec++)
     {
         int x1 = 0;
@@ -150,16 +149,16 @@ static void gen_cmd_stream(struct etna_ringbuffer *rb, struct etna_bo *bmp, cons
         int x2 = 256;
         int y2 = rec;
 
-        etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_TOP_LEFT_X(x1) |
+        etna_context_emit(ctx, VIV_FE_DRAW_2D_TOP_LEFT_X(x1) |
                                       VIV_FE_DRAW_2D_TOP_LEFT_Y(y1));
-        etna_ringbuffer_emit(rb, VIV_FE_DRAW_2D_BOTTOM_RIGHT_X(x2) |
+        etna_context_emit(ctx, VIV_FE_DRAW_2D_BOTTOM_RIGHT_X(x2) |
                                       VIV_FE_DRAW_2D_BOTTOM_RIGHT_Y(y2));
     }
-    etna_set_state(rb, 1, 0);
-    etna_set_state(rb, 1, 0);
-    etna_set_state(rb, 1, 0);
+    etna_set_state(ctx, 1, 0);
+    etna_set_state(ctx, 1, 0);
+    etna_set_state(ctx, 1, 0);
 
-    etna_set_state(rb, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_PE2D);
+    etna_set_state(ctx, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_PE2D);
 }
 
 int main(int argc, char *argv[])
@@ -171,7 +170,7 @@ int main(int argc, char *argv[])
 	struct etna_device *dev;
 	struct etna_pipe *pipe;
 	struct etna_bo *bmp;
-	struct etna_ringbuffer *rb;
+	struct etna_context *ctx;
 
 	drmVersionPtr version;
 	int fd, ret = 0;
@@ -210,22 +209,22 @@ int main(int argc, char *argv[])
 	memset(etna_bo_map(bmp), 0, bmp_size);
 
 
-	rb = etna_ringbuffer_new(pipe, 1024);
-	if (!rb) {
+	ctx = etna_context_new(pipe);
+	if (!ctx) {
 		ret = 5;
 		goto fail;
 	}
 
 	/* generate command sequence */
-	gen_cmd_stream(rb, bmp, width, height);
+	gen_cmd_stream(ctx, bmp, width, height);
 
-	etna_ringbuffer_flush(rb);
+	etna_context_finish(ctx);
 
 	bmp_dump32(etna_bo_map(bmp), width, height, false, "/tmp/etna.bmp");
 
 fail:
-	if (rb)
-		etna_ringbuffer_del(rb);
+	if (ctx)
+		etna_context_del(ctx);
 
 	if (pipe)
 		etna_pipe_del(pipe);

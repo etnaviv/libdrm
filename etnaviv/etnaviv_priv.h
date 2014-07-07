@@ -45,7 +45,6 @@
 #include "list.h"
 
 #include "etnaviv_drmif.h"
-//#include "freedreno_ringbuffer.h"
 //#include "drm.h"
 #include "etnaviv_drm.h"
 
@@ -112,6 +111,21 @@ struct etna_pipe {
 	enum etna_pipe_id id;
 	struct etna_device *dev;
 	struct etna_specs specs;
+};
+
+
+#define NUM_CMD_STREAMS 	5
+
+struct etna_context {
+	struct etna_pipe *pipe;
+	struct etna_bo *cmd_stream[NUM_CMD_STREAMS];
+	int current_stream;
+	uint32_t *cmd;
+	uint32_t offset;
+
+	/* reloc's table: */
+	struct drm_vivante_gem_submit_reloc *relocs;
+	uint32_t nr_relocs, max_relocs;
 };
 
 #define ALIGN(v,a) (((v) + (a) - 1) & ~((a) - 1))

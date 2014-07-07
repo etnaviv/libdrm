@@ -33,6 +33,7 @@
 struct etna_bo;
 struct etna_pipe;
 struct etna_device;
+struct etna_context;
 
 enum etna_pipe_id {
 	ETNA_PIPE_3D = 1,
@@ -105,5 +106,28 @@ uint32_t etna_bo_size(struct etna_bo *bo);
 void * etna_bo_map(struct etna_bo *bo);
 int etna_bo_cpu_prep(struct etna_bo *bo, uint32_t op);
 void etna_bo_cpu_fini(struct etna_bo *bo);
+
+
+/* context functions:
+ */
+
+struct etna_context * etna_context_new(struct etna_pipe *pipe);
+void etna_context_del(struct etna_context *ctx);
+void etna_context_reserve(struct etna_context *ctx, size_t n);
+void etna_context_emit(struct etna_context *ctx, uint32_t data);
+void etna_context_flush(struct etna_context *ctx);
+void etna_context_finish(struct etna_context *ctx);
+
+struct etna_reloc {
+	struct etna_bo *bo;
+#define ETNA_RELOC_READ             0x0001
+#define ETNA_RELOC_WRITE            0x0002
+	uint32_t flags;
+	uint32_t offset;
+	uint32_t or;
+	int32_t  shift;
+};
+
+void etna_context_reloc(struct etna_context *ring, const struct etna_reloc *r);
 
 #endif /* FREEDRENO_DRMIF_H_ */

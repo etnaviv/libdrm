@@ -13,7 +13,7 @@ libdrm_etnaviv_la_SOURCES = \
 	etnaviv_device.c \
 	etnaviv_bo.c \
 	etnaviv_pipe.c \
-	etnaviv_ringbuffer.c
+	etnaviv_context.c
 
 libdrm_etnavivincludedir = ${includedir}/libdrm
 libdrm_etnavivinclude_HEADERS = etnaviv_drmif.h etnaviv_ringbuffer.h
