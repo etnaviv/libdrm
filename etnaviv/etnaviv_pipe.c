@@ -50,7 +50,6 @@ int etna_pipe_get_param(struct etna_pipe *pipe,
 
 int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp)
 {
-#if 0
 	struct etna_device *dev = pipe->dev;
 	struct drm_vivante_wait_fence req = {
 			.fence = timestamp,
@@ -64,7 +63,7 @@ int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp)
 		ERROR_MSG("wait-fence failed! %d (%s)", ret, strerror(errno));
 		return ret;
 	}
-#endif
+
 	return 0;
 }
 

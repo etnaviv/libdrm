@@ -46,7 +46,7 @@
  * restarting interrupted ioctls).  The following struct is logically the
  * same as 'struct timespec' but 32/64b ABI safe.
  */
-struct drm_msm_timespec {
+struct drm_vivante_timespec {
 	int64_t tv_sec;          /* seconds */
 	int64_t tv_nsec;         /* nanoseconds */
 };
@@ -96,7 +96,7 @@ struct drm_vivante_gem_info {
 struct drm_msm_gem_cpu_prep {
 	uint32_t handle;         /* in */
 	uint32_t op;             /* in, mask of MSM_PREP_x */
-	struct drm_msm_timespec timeout;   /* in */
+	struct drm_vivante_timespec timeout;   /* in */
 };
 
 struct drm_msm_gem_cpu_fini {
@@ -186,10 +186,10 @@ struct drm_vivante_gem_submit {
  * mainly just exists as a way to implement the gallium pipe_fence
  * APIs without requiring a dummy bo to synchronize on.
  */
-struct drm_msm_wait_fence {
+struct drm_vivante_wait_fence {
 	uint32_t fence;          /* in */
 	uint32_t pad;
-	struct drm_msm_timespec timeout;   /* in */
+	struct drm_vivante_timespec timeout;   /* in */
 };
 
 #define DRM_VIVANTE_GET_PARAM          0x00

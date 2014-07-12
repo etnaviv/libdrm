@@ -156,4 +156,13 @@ struct etna_context {
 #define U642VOID(x) ((void *)(unsigned long)(x))
 #define VOID2U64(x) ((uint64_t)(unsigned long)(x))
 
+static inline void get_abs_timeout(struct drm_vivante_timespec *tv, uint32_t ms)
+{
+	struct timespec t;
+	uint32_t s = ms / 1000;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	tv->tv_sec = t.tv_sec + s;
+	tv->tv_nsec = t.tv_nsec + ((ms - (s * 1000)) * 1000000);
+}
+
 #endif /* ETNAVIV_PRIV_H_ */
