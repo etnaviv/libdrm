@@ -123,6 +123,12 @@ struct etna_context {
 	uint32_t *cmd;
 	uint32_t offset;
 
+	struct list_head submit_list;
+
+	/* bo's table: */
+	struct drm_vivante_gem_submit_bo *bos;
+	uint32_t nr_bos, max_bos;
+
 	/* reloc's table: */
 	struct drm_vivante_gem_submit_reloc *relocs;
 	uint32_t nr_relocs, max_relocs;

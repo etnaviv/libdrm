@@ -76,6 +76,8 @@ struct etna_context * etna_context_new(struct etna_pipe *pipe)
 		}
 	}
 
+	list_inithead(&ctx->submit_list);
+
 	ctx->cmd = ctx->cmd_stream[0]->map;
 	ctx->pipe = pipe;
 
@@ -108,6 +110,7 @@ static void switch_cmd_stream(struct etna_context *ctx)
 	ctx->current_stream = cmd_steam_idx;
 	ctx->offset = 0;
 	ctx->cmd = ctx->cmd_stream[cmd_steam_idx]->map;
+	ctx->nr_bos = 0;
 	ctx->nr_relocs = 0;
 }
 
@@ -128,7 +131,32 @@ void etna_context_emit(struct etna_context *ctx, uint32_t data)
 
 void etna_context_flush(struct etna_context *ctx)
 {
-	/* TODO*/
+	int ret, id = ctx->pipe->id;
+	struct etna_bo *etna_bo = NULL, *tmp;
+
+	struct drm_vivante_gem_submit req = {
+			.pipe = ctx->pipe->id,
+			.cmds = VOID2U64(ctx->cmd_stream[ctx->current_stream]),
+			.nr_cmds = 1,
+			.bos = VOID2U64(ctx->bos),
+			.nr_bos = ctx->nr_bos,
+	};
+
+	ret = drmCommandWriteRead(ctx->pipe->dev->fd, DRM_VIVANTE_GEM_SUBMIT,
+			&req, sizeof(req));
+
+	if (ret) {
+		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
+	} else {
+		/* TODO */
+	}
+
+	LIST_FOR_EACH_ENTRY_SAFE(etna_bo, tmp, &ctx->submit_list, list[id]) {
+		struct list_head *list = &etna_bo->list[id];
+		list_delinit(list);
+		etna_bo->indexp1[id] = 0;
+		etna_bo_del(etna_bo);
+	}
 }
 
 void etna_context_finish(struct etna_context *ctx)
@@ -136,6 +164,32 @@ void etna_context_finish(struct etna_context *ctx)
 	etna_context_flush(ctx);
 
 	/* TODO */
+}
+
+/* add (if needed) bo, return idx: */
+static uint32_t bo2idx(struct etna_context *ctx, struct etna_bo *bo, uint32_t flags)
+{
+	int id = ctx->pipe->id;
+	uint32_t idx;
+	if (!bo->indexp1[id]) {
+		struct list_head *list = &bo->list[id];
+		idx = APPEND(ctx, bos);
+		ctx->bos[idx].flags = 0;
+		ctx->bos[idx].handle = bo->handle;
+		ctx->bos[idx].presumed = bo->presumed;
+		bo->indexp1[id] = idx + 1;
+
+		assert(LIST_IS_EMPTY(list));
+		etna_bo_ref(bo);
+		list_addtail(list, &ctx->submit_list);
+	} else {
+		idx = bo->indexp1[id] - 1;
+	}
+	if (flags & ETNA_RELOC_READ)
+		ctx->bos[idx].flags |= ETNA_SUBMIT_BO_READ;
+	if (flags & ETNA_RELOC_WRITE)
+		ctx->bos[idx].flags |= ETNA_SUBMIT_BO_WRITE;
+	return idx;
 }
 
 void etna_context_reloc(struct etna_context *ctx, const struct etna_reloc *r)
@@ -146,7 +200,7 @@ void etna_context_reloc(struct etna_context *ctx, const struct etna_reloc *r)
 
 	reloc = &ctx->relocs[idx];
 
-	reloc->reloc_idx = 0; /* TODO */
+	reloc->reloc_idx = bo2idx(ctx, r->bo, r->flags);
 	reloc->reloc_offset = r->offset;
 	reloc->or = r->or;
 	reloc->shift = r->shift;
