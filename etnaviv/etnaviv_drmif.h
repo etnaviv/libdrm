@@ -115,6 +115,7 @@ struct etna_context * etna_context_new(struct etna_pipe *pipe);
 void etna_context_del(struct etna_context *ctx);
 void etna_context_reserve(struct etna_context *ctx, size_t n);
 void etna_context_emit(struct etna_context *ctx, uint32_t data);
+uint32_t etna_context_timestamp(struct etna_context *ctx);
 void etna_context_flush(struct etna_context *ctx);
 void etna_context_finish(struct etna_context *ctx);
 

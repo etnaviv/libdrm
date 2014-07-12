@@ -129,6 +129,11 @@ void etna_context_emit(struct etna_context *ctx, uint32_t data)
 	ctx->cmd[ctx->offset++] = data;
 }
 
+uint32_t etna_context_timestamp(struct etna_context *ctx)
+{
+	return ctx->last_timestamp;
+}
+
 void etna_context_flush(struct etna_context *ctx)
 {
 	int ret, id = ctx->pipe->id;
@@ -148,7 +153,7 @@ void etna_context_flush(struct etna_context *ctx)
 	if (ret) {
 		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
 	} else {
-		/* TODO */
+		ctx->last_timestamp = req.fence;
 	}
 
 	LIST_FOR_EACH_ENTRY_SAFE(etna_bo, tmp, &ctx->submit_list, list[id]) {

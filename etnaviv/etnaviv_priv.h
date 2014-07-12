@@ -124,6 +124,7 @@ struct etna_context {
 	uint32_t offset;
 
 	struct list_head submit_list;
+	uint32_t last_timestamp;
 
 	/* bo's table: */
 	struct drm_vivante_gem_submit_bo *bos;
