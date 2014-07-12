@@ -160,7 +160,6 @@ void etna_context_flush(struct etna_context *ctx)
 		struct list_head *list = &etna_bo->list[id];
 		list_delinit(list);
 		etna_bo->indexp1[id] = 0;
-		etna_bo_del(etna_bo);
 	}
 }
 
