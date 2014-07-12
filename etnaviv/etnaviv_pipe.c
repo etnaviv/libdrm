@@ -52,6 +52,7 @@ int etna_pipe_wait(struct etna_pipe *pipe, uint32_t timestamp)
 {
 	struct etna_device *dev = pipe->dev;
 	struct drm_vivante_wait_fence req = {
+			.pipe = pipe->id,
 			.fence = timestamp,
 	};
 	int ret;
