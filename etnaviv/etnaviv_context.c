@@ -167,8 +167,7 @@ void etna_context_flush(struct etna_context *ctx)
 void etna_context_finish(struct etna_context *ctx)
 {
 	etna_context_flush(ctx);
-
-	/* TODO */
+	etna_pipe_wait(ctx->pipe, ctx->last_timestamp);
 }
 
 /* add (if needed) bo, return idx: */
