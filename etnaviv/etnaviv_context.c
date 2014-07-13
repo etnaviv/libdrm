@@ -111,6 +111,7 @@ static void switch_cmd_stream(struct etna_context *ctx)
 	ctx->offset = 0;
 	ctx->cmd = ctx->cmd_stream[cmd_steam_idx]->map;
 	ctx->nr_bos = 0;
+	ctx->nr_cmds = 0;
 	ctx->nr_relocs = 0;
 }
 
@@ -132,41 +133,6 @@ void etna_context_emit(struct etna_context *ctx, uint32_t data)
 uint32_t etna_context_timestamp(struct etna_context *ctx)
 {
 	return ctx->last_timestamp;
-}
-
-void etna_context_flush(struct etna_context *ctx)
-{
-	int ret, id = ctx->pipe->id;
-	struct etna_bo *etna_bo = NULL, *tmp;
-
-	struct drm_vivante_gem_submit req = {
-			.pipe = ctx->pipe->id,
-			.cmds = VOID2U64(ctx->cmd_stream[ctx->current_stream]),
-			.nr_cmds = 1,
-			.bos = VOID2U64(ctx->bos),
-			.nr_bos = ctx->nr_bos,
-	};
-
-	ret = drmCommandWriteRead(ctx->pipe->dev->fd, DRM_VIVANTE_GEM_SUBMIT,
-			&req, sizeof(req));
-
-	if (ret) {
-		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
-	} else {
-		ctx->last_timestamp = req.fence;
-	}
-
-	LIST_FOR_EACH_ENTRY_SAFE(etna_bo, tmp, &ctx->submit_list, list[id]) {
-		struct list_head *list = &etna_bo->list[id];
-		list_delinit(list);
-		etna_bo->indexp1[id] = 0;
-	}
-}
-
-void etna_context_finish(struct etna_context *ctx)
-{
-	etna_context_flush(ctx);
-	etna_pipe_wait(ctx->pipe, ctx->last_timestamp);
 }
 
 /* add (if needed) bo, return idx: */
@@ -193,6 +159,53 @@ static uint32_t bo2idx(struct etna_context *ctx, struct etna_bo *bo, uint32_t fl
 	if (flags & ETNA_RELOC_WRITE)
 		ctx->bos[idx].flags |= ETNA_SUBMIT_BO_WRITE;
 	return idx;
+}
+
+void etna_context_flush(struct etna_context *ctx)
+{
+	int ret, idx, id = ctx->pipe->id;
+	struct etna_bo *etna_bo = NULL, *tmp;
+	struct drm_vivante_gem_submit_cmd *cmd = NULL;
+
+	struct drm_vivante_gem_submit req = {
+			.pipe = ctx->pipe->id,
+	};
+
+	/* TODO: we only support _ONE_ cmd per submit ioctl for now. This makes
+	 *       things simpler. */
+	idx = APPEND(ctx, cmds);
+	cmd = &ctx->cmds[idx];
+	cmd->type = ETNA_SUBMIT_CMD_BUF;
+	cmd->submit_idx = bo2idx(ctx, ctx->cmd_stream[ctx->current_stream], ETNA_RELOC_READ);
+	cmd->submit_offset = 0;
+	cmd->size = ctx->offset;
+	cmd->pad = 0;
+
+	req.cmds = VOID2U64(cmd);
+	req.nr_cmds = ctx->nr_cmds;
+	req.bos = VOID2U64(ctx->bos);
+	req.nr_bos = ctx->nr_bos;
+
+	ret = drmCommandWriteRead(ctx->pipe->dev->fd, DRM_VIVANTE_GEM_SUBMIT,
+			&req, sizeof(req));
+
+	if (ret) {
+		ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
+	} else {
+		ctx->last_timestamp = req.fence;
+	}
+
+	LIST_FOR_EACH_ENTRY_SAFE(etna_bo, tmp, &ctx->submit_list, list[id]) {
+		struct list_head *list = &etna_bo->list[id];
+		list_delinit(list);
+		etna_bo->indexp1[id] = 0;
+	}
+}
+
+void etna_context_finish(struct etna_context *ctx)
+{
+	etna_context_flush(ctx);
+	etna_pipe_wait(ctx->pipe, ctx->last_timestamp);
 }
 
 void etna_context_reloc(struct etna_context *ctx, const struct etna_reloc *r)

@@ -130,6 +130,10 @@ struct etna_context {
 	struct drm_vivante_gem_submit_bo *bos;
 	uint32_t nr_bos, max_bos;
 
+	/* cmd's table: */
+	struct drm_vivante_gem_submit_cmd *cmds;
+	uint32_t nr_cmds, max_cmds;
+
 	/* reloc's table: */
 	struct drm_vivante_gem_submit_reloc *relocs;
 	uint32_t nr_relocs, max_relocs;
